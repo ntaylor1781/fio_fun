@@ -1,0 +1,80 @@
+#!/usr/bin/python
+
+import argparse
+import re
+
+def main():
+    args = get_args()
+    read = []
+    write = []
+
+    fh = open(args.logfile, 'r')
+    for line in fh.readlines():
+        r = re.search("read\ .+", line)
+        if r:
+            read.append(r.group(0))
+        w = re.search("write:\ io.+", line)
+        if w:
+            write.append(w.group(0))
+        r_stats = re.search("READ:.+", line)
+        if r_stats:
+            read_stats = r_stats.group(0)
+        w_stats = re.search("WRITE:.+", line)
+        if w_stats:
+            write_stats = w_stats.group(0)
+        g_stats = re.search("\S.+util.+", line)
+        if g_stats:
+            general_stats = g_stats.group(0)
+    fh.close()
+
+    avg_read = aggregate(array = read)
+    avg_write = aggregate(array = write)
+    read_speed_kb = grab(line = read_stats, search = 'aggrb')
+    read_speed_mb = read_speed_kb / 1024
+    write_speed_kb = grab(line = write_stats, search = 'aggrb')
+    write_speed_mb = write_speed_kb / 1024
+
+    print("""  Read Stats:
+    Average read IOPS:      {},
+    Average read speed:     {} MB/s,
+    Average runtime of job: {} msec\n
+""".format(avg_read['iops'], read_speed_mb, avg_read['runt']))
+
+    print("""  Write Stats:
+    Average write IOPS:     {},
+    Average write speed:    {} MB/s,
+    Average runtime of job: {} msec\n
+""".format(avg_write['iops'], write_speed_mb, avg_write['runt']))
+
+    print("  General Stats: {}").format(general_stats)
+
+def aggregate(array):
+    resp = {}
+    iops = 0
+    runt = 0
+
+    for line in array:
+        iops += grab(line, search = 'iops')
+        runt += grab(line, search = 'runt')
+
+    resp['iops'] = iops / len(array)
+    resp['runt'] = runt / len(array)
+
+    return resp
+
+def grab(line, search):
+    tmp = re.search(search + "=[0-9]+", line)
+    num = tmp.group(0)
+    return int(num.split("=")[1])
+
+def get_args():
+    """Parses the command line arguments. Takes no parameters."""
+    parser = argparse.ArgumentParser(description='Parse FIO output, and aggregate across jobs',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('--logfile', '-l', help='The fio output file you wish to parse', required=True)
+    result = parser.parse_args()
+    return result
+
+if __name__ == '__main__':
+    main()
