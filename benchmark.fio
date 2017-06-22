@@ -6,7 +6,7 @@ iodepth=256
 directory=/etc/fio/test
 thread=0
 rwmixwrite=75
-invalidate=1
+invalidate=0
 kb_base=1024
 
 #[random_read_write]

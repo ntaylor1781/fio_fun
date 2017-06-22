@@ -7,6 +7,10 @@ def main():
     args = get_args()
     read = []
     write = []
+    read_speed_mb = None
+    write_speed_mb = None
+    read_speed_final = None
+    write_speed_final = None
 
     fh = open(args.logfile, 'r')
     for line in fh.readlines():
@@ -30,23 +34,33 @@ def main():
     avg_read = aggregate(array = read)
     avg_write = aggregate(array = write)
     read_speed_kb = grab(line = read_stats, search = 'aggrb')
-    read_speed_mb = read_speed_kb / 1024
+    if read_speed_kb >= 1024:
+        read_speed_mb = read_speed_kb / 1024
+    if read_speed_mb:
+        read_speed_final = "{0} MB/s".format(read_speed_mb)
+    else:
+        read_speed_final = "{0} KB/s".format(read_speed_kb)
     write_speed_kb = grab(line = write_stats, search = 'aggrb')
-    write_speed_mb = write_speed_kb / 1024
+    if write_speed_kb >= 1024:
+        write_speed_mb = write_speed_kb / 1024
+    if write_speed_mb:
+        write_speed_final = "{0} MB/s".format(write_speed_mb)
+    else:
+        write_speed_final = "{0} KB/s".format(write_speed_kb)
 
     print("""  Read Stats:
-    Average read IOPS:      {},
-    Average read speed:     {} MB/s,
-    Average runtime of job: {} msec\n
-""".format(avg_read['iops'], read_speed_mb, avg_read['runt']))
+    Average read IOPS:      {0},
+    Average read speed:     {1},
+    Average runtime of job: {2} msec\n
+""".format(avg_read['iops'], read_speed_final, avg_read['runt']))
 
     print("""  Write Stats:
-    Average write IOPS:     {},
-    Average write speed:    {} MB/s,
-    Average runtime of job: {} msec\n
-""".format(avg_write['iops'], write_speed_mb, avg_write['runt']))
+    Average write IOPS:     {0},
+    Average write speed:    {1},
+    Average runtime of job: {2} msec\n
+""".format(avg_write['iops'], write_speed_final, avg_write['runt']))
 
-    print("  General Stats: {}").format(general_stats)
+    print("  General Stats: {0}").format(general_stats)
 
 def aggregate(array):
     resp = {}
